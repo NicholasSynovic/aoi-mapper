@@ -133,3 +133,4 @@ dmypy.json
 */data/*
 */aoiDataset/*
 *.jpg
+VOC2012/*
