@@ -1,15 +1,17 @@
 from json import load
+from pathlib import PurePath
 
 import cv2
+import numpy
 from lxml.etree import _Element, _ElementTree, parse
 from numpy import ndarray
+from pandas import DataFrame
 from progress.bar import Bar
-import numpy
-from pathlib import PurePath
 
 blackWhiteThreshold: int = 128
 
-def loadJSON(filepath: PurePath)    ->  dict:
+
+def loadJSON(filepath: PurePath) -> dict:
     data: dict = {}
 
     with open(filepath, "r") as jsonFile:
@@ -24,7 +26,8 @@ def loadJSON(filepath: PurePath)    ->  dict:
 
     return data
 
-def loadBBoxFromFile(filepath: str)    ->  dict | None:
+
+def loadBBoxFromFile(filepath: str) -> dict | None:
     try:
         et: _ElementTree = parse(filepath)
     except OSError:
@@ -50,18 +53,41 @@ def loadBBoxFromFile(filepath: str)    ->  dict | None:
 
     return coordinates
 
+
+def computeImageMetrics(imageFilePath: str, coordinates: dict) -> DataFrame:
+    image: ndarray = cv2.imread(imageFilePath)
+    totalImageArea: int = image.shape[0] * image.shape[1]
+    totalWhitePixels: int = numpy.sum(image >= 128) / 3
+    totalBlackPixels: int = numpy.sum(image < 128) / 3
+
+    croppedImage: ndarray = image[
+        round(coordinates["ymin"]) : round(coordinates["ymax"]),
+        round(coordinates["xmin"]) : round(coordinates["xmax"]),
+    ]
+    croppedImageArea: int = croppedImage.shape[0] * croppedImage.shape[1]
+    croppedWhitePixels: int = numpy.sum(croppedImage >= 128) / 3
+    croppedBlackPixels: int = numpy.sum(croppedImage < 128) / 3
+
+    diffArea: int = totalImageArea - croppedImageArea
+    diffWhitePixels: int = totalWhitePixels - croppedWhitePixels
+    diffBlackPixels: int = totalBlackPixels - croppedBlackPixels
+
+
 def main() -> None:
     annotationsMap: PurePath = PurePath("annotationMap.json")
     data: dict = loadJSON(filepath=annotationsMap)
 
-    with Bar("Checking bounding boxes for each type of aoi map...", max=len(data.keys())) as bar:
+    with Bar(
+        "Checking bounding boxes for each type of aoi map...", max=len(data.keys())
+    ) as bar:
         xmlFilePath: str
         for xmlFilePath in data.keys():
             coordinates: dict | None = loadBBoxFromFile(filepath=xmlFilePath)
-
             if coordinates is None:
                 bar.next()
                 continue
+
+            computeImageMetrics(data[xmlFilePath], coordinates)
 
             topLeft: tuple = (
                 round(coordinates["xmin"]),
@@ -71,71 +97,6 @@ def main() -> None:
                 round(coordinates["xmax"]),
                 round(coordinates["ymax"]),
             )
-
-            imageFilePath: str = data[xmlFilePath]
-
-            image: ndarray = cv2.imread(imageFilePath)
-
-            imageArea: int = image.shape[0] * image.shape[1]
-            whitePixels: int = numpy.sum(image >= 128) / 3
-            blackPixels: int = numpy.sum(image < 128) / 3
-            pixelSum = blackPixels + whitePixels
-            error = pixelSum - imageArea
-
-            otherPixels: int = numpy.sum((image != 0) & (image != 255))
-
-            print()
-            print(imageFilePath)
-            print("black pixels:", blackPixels)
-            print("white pixels:",whitePixels)
-            print()
-            print("pixel sum:",pixelSum)
-            print("area:", imageArea)
-            print("actual:", 500 * 343)
-            print("Error:", error)
-            print("other pixels:", otherPixels)
-
-            imageUniquePixelValues = numpy.unique(image)
-            print(imageUniquePixelValues)
-
-            # hist = numpy.histogram(temp)
-            # print(hist)
-
-
-
-            # wrongPixels: ndarray = numpy.where((image != 0) & (image != 255))
-            # print(wrongPixels)
-            # # shape: tuple = image.shape
-
-            # totalBlackPixels: int = numpy.sum(image == 255) / 3
-            # totalWhitePixels: int = numpy.sum(image == 0) / 3
-
-            # totalPixels: int = shape[0] * shape[1]
-
-            # print()
-            # print("total bp:", totalBlackPixels)
-            # print("total wp:", totalWhitePixels)
-            # print("bp + wp:", totalBlackPixels + totalWhitePixels)
-            # print("total p:", totalPixels)
-
-            # print("error:", totalBlackPixels + totalWhitePixels - totalPixels)
-
-
-            # image = image[
-            #     round(coordinates["ymin"]) : round(coordinates["ymax"]),
-            #     round(coordinates["xmin"]) : round(coordinates["xmax"]),
-            # ]
-
-            # totalBlackPixels: int = numpy.sum(image == 255) / 3
-            # totalWhitePixels: int = numpy.sum(image == 0) / 3
-            # totalPixels: int = (totalBlackPixels + totalWhitePixels) / 3
-
-            # print(
-            #     "\n",
-            #     totalBlackPixels,
-            #     totalWhitePixels,
-            #     totalPixels,
-            # )
 
             # # image: ndarray = array(Image.open(imageFilePath).convert("RGB"))
             # # cv2.rectangle(
