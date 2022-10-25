@@ -12,6 +12,7 @@ torchvision = "^0.13.1"
 progress = "^1.6"
 timm = "^0.6.7"
 ipykernel = "^6.16.1"
+lxml = "^4.9.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
