@@ -135,3 +135,5 @@ dmypy.json
 *.jpg
 VOC2012/*
 voc2012/*
+*.xml
+.vscode/*
