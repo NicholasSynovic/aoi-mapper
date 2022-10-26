@@ -120,15 +120,15 @@ def main() -> None:
 
             imageFile: str
             for imageFile in data[xmlFilePath]:
-                df = pandas.concat(
-                    [df, computeImageMetrics(imageFile, coordinates)]
-                )
+                df = pandas.concat([df, computeImageMetrics(imageFile, coordinates)])
                 df.reset_index(drop=True, inplace=True)
 
                 createAOIWithBBox(imageFile, coordinates)
 
             bar.next()
-        df.T.to_json("bboxStatistics.json")
+        df.T.to_json(
+            "bboxStatistics.zip", double_precision=3, compression={"method": "zip"}
+        )
 
 
 if __name__ == "__main__":
