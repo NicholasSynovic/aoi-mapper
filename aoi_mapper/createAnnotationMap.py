@@ -1,3 +1,4 @@
+from json import dump
 from os import listdir
 from os.path import join
 from pathlib import PurePath
@@ -8,7 +9,7 @@ from progress.bar import Bar
 
 def readDirectory(dir: PurePath) -> list:
     files: list = listdir(dir)
-    filepaths: list = [PurePath(join(dir, f)) for f in files]
+    filepaths: list = [join(dir, f) for f in files]
     return filepaths
 
 
@@ -30,18 +31,20 @@ def main() -> None:
     with Bar(
         "Creating mapping between xml files and image files...", max=len(keys)
     ) as bar:
-        key: PurePath
+        key: str
         for key in keys:
-            query: str = key.with_suffix("").name
+            keyPurePath: PurePath = PurePath(key)
+            query: str = keyPurePath.with_suffix("").name
 
+            count = 0
             filepath: PurePath
             for filepath in imageFiles:
-                if filepath.name.find(query) > -1:
+                filepathPurePath: PurePath = PurePath(filepath)
+                if filepathPurePath.name.find(query) != -1:
                     annotationMap[key].append(filepath)
             bar.next()
 
-    df: DataFrame = DataFrame(annotationMap)
-    df.T.to_json("annotationMap.json")
+    dump(annotationMap, open("annotationMap.json", "w"))
 
 
 if __name__ == "__main__":
