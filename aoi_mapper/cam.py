@@ -1,21 +1,22 @@
 # Simple implementation of CAM in PyTorch for the networks such as ResNet, DenseNet, SqueezeNet, Inception
 
 import json
+from os import listdir
+from os.path import join
+from pathlib import PurePath
 from typing import Tuple
 
 import cv2
 import numpy as np
 from numpy import ndarray
 from PIL import Image
-from torch.autograd import Variable
+from progress.bar import Bar
 from torch import Tensor
+from torch.autograd import Variable
 from torch.nn import functional as F
 from torchvision import models, transforms
-from torchvision.models import DenseNet, ResNet, SqueezeNet, SqueezeNet1_1_Weights, ResNet18_Weights
-from pathlib import PurePath
-from os import listdir
-from os.path import join
-from progress.bar import Bar
+from torchvision.models import (DenseNet, ResNet, ResNet18_Weights, SqueezeNet,
+                                SqueezeNet1_1_Weights)
 
 features_blobs: list = []
 
@@ -25,6 +26,7 @@ def loadImageNetClasses(filepath: str) -> dict:
         imageNetClasses = json.load(jsonFile)
         jsonFile.close()
     return imageNetClasses
+
 
 def readDirectory(dir: PurePath) -> list:
     files: list = listdir(dir)
@@ -54,11 +56,11 @@ def loadPTM(id: int = 1) -> Tuple[SqueezeNet | ResNet | DenseNet | None, str, st
     return (net, finalconv_name, modelName)
 
 
-def hook_feature(module, input, output) ->  None:
+def hook_feature(module, input, output) -> None:
     features_blobs.append(output.data.cpu().numpy())
 
 
-def returnCAM(feature_conv, weight_softmax, class_idx)  ->  list:
+def returnCAM(feature_conv, weight_softmax, class_idx) -> list:
     size_upsample: tuple = (256, 256)
     bz, nc, h, w = feature_conv.shape
     output_cam: list = []
@@ -79,7 +81,7 @@ def main() -> None:
     imageNetClasses: dict = loadImageNetClasses(filepath="imagenet-simple-labels.json")
 
     while modelID < modelCount + 1:
-        net, finalconv_name, modelName = loadPTM(id = modelID)
+        net, finalconv_name, modelName = loadPTM(id=modelID)
         if net is None:
             print("Invalid ID. ID should be between 1 - 3 inclusive.")
             quit()
@@ -96,12 +98,13 @@ def main() -> None:
             [transforms.Resize((224, 224)), transforms.ToTensor(), normalize]
         )
 
-
         imageFiles: list = []
         for foo in readDirectory(dir=PurePath("images")):
             imageFiles.append(foo)
 
-        with Bar(f"Creating CAMs of images with {modelName}...", max=len(imageFiles)) as bar:
+        with Bar(
+            f"Creating CAMs of images with {modelName}...", max=len(imageFiles)
+        ) as bar:
             imageFile: str
             for imageFile in imageFiles:
                 filename: str = PurePath(imageFile).with_suffix("").name
@@ -110,7 +113,7 @@ def main() -> None:
 
                 img_pil: Image = Image.open(imageFile)
                 img_tensor = preprocess(img_pil)
-                img_variable:Variable = Variable(img_tensor.unsqueeze(0))
+                img_variable: Variable = Variable(img_tensor.unsqueeze(0))
                 logit = net(img_variable)
 
                 h_x: Tensor = F.softmax(logit, dim=1).data.squeeze()
@@ -129,13 +132,16 @@ def main() -> None:
                 # print("output CAM.jpg for the top1 prediction: %s" % imageNetClasses[idx[0]])
                 img = cv2.imread(imageFile)
                 height, width, _ = img.shape
-                heatmap = cv2.applyColorMap(cv2.resize(CAMs[0], (width, height)), cv2.COLORMAP_JET)
+                heatmap = cv2.applyColorMap(
+                    cv2.resize(CAMs[0], (width, height)), cv2.COLORMAP_JET
+                )
                 result = heatmap * 0.3 + img * 0.5
                 cv2.imwrite(outputFilePath, result)
 
                 bar.next()
 
         modelID += 1
+
 
 if __name__ == "__main__":
     main()
