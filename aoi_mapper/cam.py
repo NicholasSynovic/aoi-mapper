@@ -16,7 +16,7 @@ from torch.autograd import Variable
 from torch.nn import functional as F
 from torchvision import models, transforms
 from torchvision.models import (DenseNet, ResNet, ResNet18_Weights, SqueezeNet,
-                                SqueezeNet1_1_Weights)
+                                SqueezeNet1_1_Weights, DenseNet161_Weights)
 
 features_blobs: list = []
 
@@ -46,7 +46,7 @@ def loadPTM(id: int = 1) -> Tuple[SqueezeNet | ResNet | DenseNet | None, str, st
         finalconv_name = "layer4"
         modelName = "resnet"
     elif id == 3:
-        net: DenseNet = models.densenet161(pretrained=True)
+        net: DenseNet = models.densenet161(weights=DenseNet161_Weights.DEFAULT)
         finalconv_name = "features"
         modelName = "densenet"
     else:
