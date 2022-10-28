@@ -51,6 +51,7 @@ def loadBBoxFromFile(filepath: str) -> dict | None:
 
 def computeImageMetrics(imageFilePath: str, coordinates: dict) -> DataFrame:
     data: dict = {}
+    data["aoiMethod"] = PurePath(imageFilePath).with_suffix("").name.split("_")[-1]
 
     image: ndarray = cv2.imread(imageFilePath)
     data["totalImageArea"] = image.shape[0] * image.shape[1]

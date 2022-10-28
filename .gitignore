@@ -137,3 +137,4 @@ VOC2012/*
 voc2012/*
 *.xml
 .vscode/*
+*/bboxStatistics.json
